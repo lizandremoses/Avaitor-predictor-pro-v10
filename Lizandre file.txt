@@ -1,0 +1,82 @@
+import streamlit as st
+import pandas as pd
+import numpy as np
+
+# --- 1. THEME & UI ---
+st.set_page_config(page_title="Aviator Master Strategy", layout="wide")
+st.markdown("""
+    <style>
+    .stApp { background-color: #0b0e11; color: white; }
+    .signal-card { 
+        padding: 20px; border-radius: 15px; 
+        background: linear-gradient(135deg, #1e1e1e 0%, #2d2d2d 100%);
+        border: 2px solid #ff4b4b; text-align: center;
+    }
+    </style>
+    """, unsafe_allow_html=True)
+
+st.title("🛡️ AVIATOR STRATEGY FRAMEWORK")
+st.write("Target: Betway | Hollywoodbets | YesPlay")
+
+# --- 2. DATA INPUT ---
+with st.sidebar:
+    st.header("💰 Bankroll Manager")
+    balance = st.number_input("Your Balance (ZAR)", min_value=10.0, value=500.0)
+    risk = st.select_slider("Risk Mode", options=["Conservative", "Moderate", "Aggressive"])
+    
+    st.header("📊 History Input")
+    st.info("Enter the last 5 multipliers from your betting site:")
+    h1 = st.number_input("Round 1 (Newest)", value=1.5)
+    h2 = st.number_input("Round 2", value=1.2)
+    h3 = st.number_input("Round 3", value=2.5)
+    h4 = st.number_input("Round 4", value=1.1)
+    h5 = st.number_input("Round 5", value=1.3)
+
+history = [h1, h2, h3, h4, h5]
+
+# --- 3. POWER LOGIC ENGINE ---
+def analyze_data(history, balance, risk_mode):
+    avg = np.mean(history)
+    low_streak = sum(1 for x in history if x < 2.0)
+    
+    # Probability Logic
+    if low_streak >= 4:
+        target = 2.10
+        conf = "High (Recovery Zone)"
+        color = "#00ff00"
+    elif avg > 5.0:
+        target = 1.25
+        conf = "Caution (Cooling Down)"
+        color = "#ffa500"
+    else:
+        target = 1.50
+        conf = "Normal Trend"
+        color = "#3399ff"
+    
+    # Kelly Criterion Bet Sizing
+    risk_map = {"Conservative": 0.02, "Moderate": 0.05, "Aggressive": 0.10}
+    bet_size = balance * risk_map[risk_mode]
+    
+    return target, conf, color, bet_size
+
+target, conf, color, bet_size = analyze_data(history, balance, risk)
+
+# --- 4. DASHBOARD DISPLAY ---
+col1, col2 = st.columns(2)
+
+with col1:
+    st.markdown(f"""
+        <div class="signal-card">
+            <h3 style="color: grey;">RECOMMENDED TARGET</h3>
+            <h1 style="font-size: 60px; color: {color};">{target}x</h1>
+            <p>Signal Strength: <b>{conf}</b></p>
+        </div>
+    """, unsafe_allow_html=True)
+
+with col2:
+    st.metric("Suggested Bet Size", f"R{bet_size:.2f}")
+    st.metric("Stop-Loss (Daily)", f"R{balance * 0.7:.2f}")
+    st.write("---")
+    st.write("**Strategy Tip:** If you hit 3 losses in a row, close the app for 30 minutes. Pattern variance is currently too high.")
+
+st.line_chart(history)
